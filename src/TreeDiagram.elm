@@ -1,15 +1,26 @@
-module TreeDiagram exposing (draw_, node, Coord, Drawable, Tree, NodeDrawer, EdgeDrawer, TreeLayout, TreeOrientation, defaultTreeLayout, leftToRight, rightToLeft, topToBottom, bottomToTop)
+module TreeDiagram exposing
+    ( Tree, node
+    , Coord, Drawable, NodeDrawer, EdgeDrawer, draw_
+    , TreeLayout, defaultTreeLayout, TreeOrientation, leftToRight, rightToLeft, bottomToTop, topToBottom
+    )
 
 {-| This library provides functions drawing diagrams of trees.
 
+
 # Building a tree
+
 @docs Tree, node
 
+
 # Drawing a tree
+
 @docs Coord, Drawable, NodeDrawer, EdgeDrawer, draw_
 
+
 # Tree layout options
+
 @docs TreeLayout, defaultTreeLayout, TreeOrientation, leftToRight, rightToLeft, bottomToTop, topToBottom
+
 -}
 
 
@@ -70,13 +81,15 @@ type alias PrelimPosition =
 
 
 {-| Options to be passed to `draw_` for laying out the tree:
-  * orientation: direction of the tree from root to leaves.
-  * levelHeight: vertical distance between parent and child nodes.
-  * subtreeDistance: horizontal distance between subtrees.
-  * siblingDistance: horizontal distance between siblings. This is usually set
+
+  - orientation: direction of the tree from root to leaves.
+  - levelHeight: vertical distance between parent and child nodes.
+  - subtreeDistance: horizontal distance between subtrees.
+  - siblingDistance: horizontal distance between siblings. This is usually set
     below `subtreeDistance` to produce a clearer distinction between sibling
     nodes and non-siblings on the same level of the tree.
-  * padding: amount of space to leave around the edges of the diagram.
+  - padding: amount of space to leave around the edges of the diagram.
+
 -}
 type alias TreeLayout =
     { orientation : TreeOrientation
@@ -107,7 +120,7 @@ node val children =
 
 
 {-| Draws the tree using the provided functions for drawings nodes and edges.
-    TreeLayout contains some more options for positioning the tree.
+TreeLayout contains some more options for positioning the tree.
 -}
 draw_ : Drawable fmt out -> TreeLayout -> NodeDrawer a fmt -> EdgeDrawer fmt -> Tree a -> out
 draw_ drawer layout drawNode drawLine tree =
@@ -120,12 +133,12 @@ draw_ drawer layout drawNode drawLine tree =
                 layout.orientation
                 tree
     in
-        drawPositioned drawer layout.padding drawNode drawLine positionedTree
+    drawPositioned drawer layout.padding drawNode drawLine positionedTree
 
 
 {-| Function for assigning the positions of a tree's nodes.
-    The value returned by this function is a tuple of the positioned tree, and
-    the dimensions the tree occupied by the positioned tree.
+The value returned by this function is a tuple of the positioned tree, and
+the dimensions the tree occupied by the positioned tree.
 -}
 position : Int -> Int -> Int -> TreeOrientation -> Tree a -> PositionedTree a
 position siblingDistance subtreeDistance levelHeight layout tree =
@@ -140,7 +153,7 @@ position siblingDistance subtreeDistance levelHeight layout tree =
             treeBoundingBox finalTree
 
         transform =
-            (\( x, y ) ->
+            \( x, y ) ->
                 case layout of
                     LeftToRight ->
                         ( y - height / 2, x - width / 2 )
@@ -153,9 +166,8 @@ position siblingDistance subtreeDistance levelHeight layout tree =
 
                     TopToBottom ->
                         ( x - width / 2, -y + height / 2 )
-            )
     in
-        treeMap (\( v, coord ) -> ( v, transform coord )) finalTree
+    treeMap (\( v, coord ) -> ( v, transform coord )) finalTree
 
 
 {-| Function for drawing an already-positioned tree.
@@ -167,22 +179,22 @@ drawPositioned drawer padding drawNode drawLine positionedTree =
             treeBoundingBox positionedTree
 
         totalWidth =
-            (round width + 2 * padding)
+            round width + 2 * padding
 
         totalHeight =
-            (round height + 2 * padding)
+            round height + 2 * padding
     in
-        drawer.compose
+    drawer.compose
+        totalWidth
+        totalHeight
+        (drawInternal
             totalWidth
             totalHeight
-            (drawInternal
-                totalWidth
-                totalHeight
-                drawer
-                drawNode
-                drawLine
-                positionedTree
-            )
+            drawer
+            drawNode
+            drawLine
+            positionedTree
+        )
 
 
 {-| Finds the smallest box that fits around the positioned tree
@@ -193,7 +205,7 @@ treeBoundingBox tree =
         ( ( minX, maxX ), ( minY, maxY ) ) =
             treeExtrema tree
     in
-        ( maxX - minX, maxY - minY )
+    ( maxX - minX, maxY - minY )
 
 
 {-| Find the min and max X and Y coordinates in the positioned tree
@@ -225,7 +237,7 @@ treeExtrema (Node ( _, ( x, y ) ) subtrees) =
         maxY =
             max y <| Maybe.withDefault y <| List.maximum maxYs
     in
-        ( ( minX, maxX ), ( minY, maxY ) )
+    ( ( minX, maxX ), ( minY, maxY ) )
 
 
 {-| Helper function for recursively drawing the tree.
@@ -259,15 +271,15 @@ drawInternal width height drawer drawNode drawLine (Node ( v, rootCoord ) subtre
             List.map (\coord -> drawLine coord |> drawer.position transRootCoord)
                 subtreeOffsetsFromRoot
     in
-        List.append
-            (List.append edgeDrawings [ rootDrawing ])
-            (List.concatMap (drawInternal width height drawer drawNode drawLine) subtrees)
+    List.append
+        (List.append edgeDrawings [ rootDrawing ])
+        (List.concatMap (drawInternal width height drawer drawNode drawLine) subtrees)
 
 
 {-| Assign the final position of each node within the the input tree. The final
-    positions are found by performing a preorder traversal of the tree and
-    summing up the relative positions of each node's ancestors as the traversal
-    moves down the tree.
+positions are found by performing a preorder traversal of the tree and
+summing up the relative positions of each node's ancestors as the traversal
+moves down the tree.
 -}
 final : Int -> Int -> Int -> Tree ( a, PrelimPosition ) -> PositionedTree a
 final level levelHeight lOffset (Node ( v, prelimPosition ) subtrees) =
@@ -280,7 +292,7 @@ final level levelHeight lOffset (Node ( v, prelimPosition ) subtrees) =
         -- Preorder recursion into child trees
         subtreePrelimPositions =
             List.map
-                (\(Node ( _, prelimPosition ) _) -> prelimPosition)
+                (\(Node ( _, prelimPosition_ ) _) -> prelimPosition_)
                 subtrees
 
         visited =
@@ -295,14 +307,14 @@ final level levelHeight lOffset (Node ( v, prelimPosition ) subtrees) =
                 subtreePrelimPositions
                 subtrees
     in
-        Node ( v, finalPosition ) visited
+    Node ( v, finalPosition ) visited
 
 
 {-| Assign the preliminary position of each node within the input tree. The
-    preliminary positions are found by performing a postorder traversal on the
-    tree and aligning each subtree relative to its parent. Sibling subtrees are
-    pushed together as close to each other as possible, and parent nodes are
-    positioned so that they're centered over their children.
+preliminary positions are found by performing a postorder traversal on the
+tree and aligning each subtree relative to its parent. Sibling subtrees are
+pushed together as close to each other as possible, and parent nodes are
+positioned so that they're centered over their children.
 -}
 prelim : Int -> Int -> Tree a -> ( Tree ( a, PrelimPosition ), Contour )
 prelim siblingDistance subtreeDistance (Node val children) =
@@ -323,54 +335,72 @@ prelim siblingDistance subtreeDistance (Node val children) =
         -- Store the offset for each of the subtrees.
         updatedChildren =
             List.map2
-                (\(Node ( v, prelimPosition ) children) offset ->
-                    Node ( v, { prelimPosition | subtreeOffset = offset } ) children
+                (\(Node ( v, prelimPosition ) children_) offset ->
+                    Node ( v, { prelimPosition | subtreeOffset = offset } ) children_
                 )
                 subtrees
                 offsets
     in
-        case ends <| List.map2 (,) updatedChildren childContours of
-            -- The root of the current tree has children.
-            Just ( ( lSubtree, lSubtreeContour ), ( rSubtree, rSubtreeContour ) ) ->
-                let
-                    (Node ( _, lPrelimPos ) _) =
-                        lSubtree
+    case ends <| List.map2 (\a b -> ( a, b )) updatedChildren childContours of
+        -- The root of the current tree has children.
+        Just ( ( lSubtree, lSubtreeContour ), ( rSubtree, rSubtreeContour ) ) ->
+            let
+                (Node ( _, lPrelimPos ) _) =
+                    lSubtree
 
-                    (Node ( _, rPrelimPos ) _) =
-                        rSubtree
+                (Node ( _, rPrelimPos ) _) =
+                    rSubtree
 
-                    -- Calculate the position of the root, relative to the left bound of
-                    -- the current tree. Store this in the preliminary position for the
-                    -- current tree.
-                    prelimPos =
-                        { subtreeOffset = 0
-                        , rootOffset = rootOffset lPrelimPos rPrelimPos
-                        }
+                -- Calculate the position of the root, relative to the left bound of
+                -- the current tree. Store this in the preliminary position for the
+                -- current tree.
+                prelimPos =
+                    { subtreeOffset = 0
+                    , rootOffset = rootOffset lPrelimPos rPrelimPos
+                    }
 
-                    -- Construct the contour description of the current tree.
-                    rootContour =
-                        ( prelimPos.rootOffset, prelimPos.rootOffset )
+                -- Construct the contour description of the current tree.
+                rootContour =
+                    ( prelimPos.rootOffset, prelimPos.rootOffset )
 
-                    treeContour =
-                        rootContour
-                            :: (buildContour
-                                    lSubtreeContour
-                                    rSubtreeContour
-                                    rPrelimPos.subtreeOffset
-                               )
-                in
-                    ( Node ( val, prelimPos ) updatedChildren, treeContour )
+                treeContour =
+                    rootContour
+                        :: buildContour
+                            lSubtreeContour
+                            rSubtreeContour
+                            rPrelimPos.subtreeOffset
+            in
+            ( Node ( val, prelimPos ) updatedChildren, treeContour )
 
-            -- The root of the current tree is a leaf node.
-            Nothing ->
-                ( Node ( val, { subtreeOffset = 0, rootOffset = 0 } ) updatedChildren
-                , [ ( 0, 0 ) ]
-                )
+        -- The root of the current tree is a leaf node.
+        Nothing ->
+            ( Node ( val, { subtreeOffset = 0, rootOffset = 0 } ) updatedChildren
+            , [ ( 0, 0 ) ]
+            )
+
+
+{-| Reduce a list from the left, building up all of the intermediate results into a list.
+scanl (+) 0 [1,2,3,4] == [0,1,3,6,10]
+-}
+scanl : (a -> b -> b) -> b -> List a -> List b
+scanl f b xs =
+    let
+        scan1 x accAcc =
+            case accAcc of
+                acc :: _ ->
+                    f x acc :: accAcc
+
+                [] ->
+                    []
+
+        -- impossible
+    in
+    List.reverse (List.foldl scan1 [ b ] xs)
 
 
 {-| Given the preliminary positions of leftmost and rightmost subtrees, this
-    calculates the offset of the root (their parent) relative to the leftmost
-    bound of the tree starting at the root.
+calculates the offset of the root (their parent) relative to the leftmost
+bound of the tree starting at the root.
 -}
 rootOffset : PrelimPosition -> PrelimPosition -> Int
 rootOffset lPrelimPosition rPrelimPosition =
@@ -383,8 +413,8 @@ rootOffset lPrelimPosition rPrelimPosition =
 
 
 {-| Calculate how far each subtree should be offset from the left bound of the
-    first (leftmost) subtree. Each subtree needs to be positioned so that it is
-    exactly `subtreeDistance` away from its neighbors.
+first (leftmost) subtree. Each subtree needs to be positioned so that it is
+exactly `subtreeDistance` away from its neighbors.
 -}
 subtreeOffsets : Int -> Int -> List Contour -> List Int
 subtreeOffsets siblingDistance subtreeDistance contours =
@@ -392,7 +422,7 @@ subtreeOffsets siblingDistance subtreeDistance contours =
         Just c0 ->
             let
                 cumulativeContours =
-                    List.scanl
+                    scanl
                         (\c ( aggContour, _ ) ->
                             let
                                 offset =
@@ -402,19 +432,19 @@ subtreeOffsets siblingDistance subtreeDistance contours =
                                         aggContour
                                         c
                             in
-                                ( buildContour aggContour c offset, offset )
+                            ( buildContour aggContour c offset, offset )
                         )
                         ( c0, 0 )
                         (List.drop 1 contours)
             in
-                List.map (\( _, runningOffset ) -> runningOffset) cumulativeContours
+            List.map (\( _, runningOffset ) -> runningOffset) cumulativeContours
 
         Nothing ->
             []
 
 
 {-| Given two contours, calculate the offset of the second from the left bound
-    of the first such that the two are separated by exactly `minDistance`.
+of the first such that the two are separated by exactly `minDistance`.
 -}
 pairwiseSubtreeOffset : Int -> Int -> Contour -> Contour -> Int
 pairwiseSubtreeOffset siblingDistance subtreeDistance lContour rContour =
@@ -425,29 +455,30 @@ pairwiseSubtreeOffset siblingDistance subtreeDistance lContour rContour =
                 lContour
                 rContour
     in
-        case List.maximum levelDistances of
-            Just separatingDistance ->
-                let
-                    minDistance =
-                        if
-                            List.length lContour
-                                == 1
-                                || List.length rContour
-                                == 1
-                        then
-                            siblingDistance
-                        else
-                            subtreeDistance
-                in
-                    separatingDistance + minDistance
+    case List.maximum levelDistances of
+        Just separatingDistance ->
+            let
+                minDistance =
+                    if
+                        List.length lContour
+                            == 1
+                            || List.length rContour
+                            == 1
+                    then
+                        siblingDistance
 
-            Nothing ->
-                0
+                    else
+                        subtreeDistance
+            in
+            separatingDistance + minDistance
+
+        Nothing ->
+            0
 
 
 {-| Construct a contour for a tree. This is done by combining together the
-    contours of the leftmost and rightmost subtrees, and then adding the root
-    at the top of the new contour.
+contours of the leftmost and rightmost subtrees, and then adding the root
+at the top of the new contour.
 -}
 buildContour : Contour -> Contour -> Int -> Contour
 buildContour lContour rContour rContourOffset =
@@ -466,15 +497,16 @@ buildContour lContour rContour rContourOffset =
                 lContour
                 rContour
     in
-        if lLength > rLength then
-            List.append combinedContour (List.drop rLength lContour)
-        else
-            List.append
-                combinedContour
-                (List.map
-                    (\( from, to ) -> ( from + rContourOffset, to + rContourOffset ))
-                    (List.drop lLength rContour)
-                )
+    if lLength > rLength then
+        List.append combinedContour (List.drop rLength lContour)
+
+    else
+        List.append
+            combinedContour
+            (List.map
+                (\( from, to ) -> ( from + rContourOffset, to + rContourOffset ))
+                (List.drop lLength rContour)
+            )
 
 
 {-| Left-to-right tree orientation
@@ -507,7 +539,8 @@ bottomToTop =
 
 {-| Create a tuple containing the first and last elements in a list
 
-    ends [1, 2, 3, 4] == (1, 4)
+    ends [ 1, 2, 3, 4 ] == ( 1, 4 )
+
 -}
 ends : List a -> Maybe ( a, a )
 ends list =
@@ -518,7 +551,7 @@ ends list =
         last =
             List.head <| List.reverse list
     in
-        Maybe.map2 (\a b -> ( a, b )) first last
+    Maybe.map2 (\a b -> ( a, b )) first last
 
 
 {-| Apply a function to the value of each node in a tree to produce a new tree.
