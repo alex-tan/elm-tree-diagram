@@ -3,7 +3,7 @@
     "name": "alex-tan/elm-tree-diagram",
     "summary": "Library for drawing diagrams of trees. Fork of brenden/elm-tree-diagram.",
     "license": "BSD-3-Clause",
-    "version": "3.0.0",
+    "version": "1.0.0",
     "exposed-modules": [
         "TreeDiagram",
         "TreeDiagram.Svg"
