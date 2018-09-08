@@ -1,4 +1,13 @@
 # elm-tree-diagram
+
+## Note: Fork Differences
+
+This is a fork of https://github.com/brenden/elm-tree-diagram
+
+It does not include the original TreeDiagram.Canvas module as I wasn't using it and it relied on the outdated evancz/elm-graphics library.
+
+##
+
 This is an Elm package for drawing diagrams of trees. For positioning the
 trees it uses the approach described in [Tidier Drawings of Trees](http://emr.cs.iit.edu/~reingold/tidier-drawings.pdf).
 
