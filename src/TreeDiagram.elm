@@ -126,12 +126,7 @@ draw_ : Drawable fmt out -> TreeLayout -> NodeDrawer a fmt -> EdgeDrawer fmt -> 
 draw_ drawer layout drawNode drawLine tree =
     let
         positionedTree =
-            position
-                layout.siblingDistance
-                layout.subtreeDistance
-                layout.levelHeight
-                layout.orientation
-                tree
+            position layout tree
     in
     drawPositioned drawer layout.padding drawNode drawLine positionedTree
 
@@ -140,32 +135,44 @@ draw_ drawer layout drawNode drawLine tree =
 The value returned by this function is a tuple of the positioned tree, and
 the dimensions the tree occupied by the positioned tree.
 -}
-position : Int -> Int -> Int -> TreeOrientation -> Tree a -> PositionedTree a
-position siblingDistance subtreeDistance levelHeight layout tree =
+position : TreeLayout -> Tree a -> PositionedTree a
+position layout tree =
     let
         ( prelimTree, _ ) =
-            prelim siblingDistance subtreeDistance tree
+            prelim layout.siblingDistance layout.subtreeDistance tree
 
         finalTree =
-            final 0 levelHeight 0 prelimTree
+            final 0 layout.levelHeight 0 prelimTree
 
         ( width, height ) =
             treeBoundingBox finalTree
 
+        {- The right hand side of the leftmost node ends with a negative position in `pairwiseSubtreeOffset` since its
+        contour is (0, 0) and the next is something like (400, 400). This results in the position being -300
+        (difference - siblingDistance). This will show up as the left side going into the padding (or disappearing
+        entirely) and the right side moving further away from the padding.
+
+        Our solution is to translate all nodes on their final transformation to ensure they all appear in the diagram.
+        This is considered "good enough" whereas a real solution owuld probably result in a large rework of `prelim`.
+        This works for my layout (where `siblingDistance` and `subtreeDistance` are 100).
+        -}
+        finalOffset =
+            toFloat layout.siblingDistance * 3
+
         transform =
             \( x, y ) ->
-                case layout of
+                case layout.orientation of
                     LeftToRight ->
-                        ( y - height / 2, x - width / 2 )
+                        ( y - height / 2, x - width / 2 + finalOffset )
 
                     RightToLeft ->
-                        ( -y + height / 2, x - width / 2 )
+                        ( -y + height / 2, x - width / 2 + finalOffset )
 
                     BottomToTop ->
-                        ( x - width / 2, y - height / 2 )
+                        ( x - width / 2 + finalOffset, y - height / 2 )
 
                     TopToBottom ->
-                        ( x - width / 2, -y + height / 2 )
+                        ( x - width / 2 + finalOffset, -y + height / 2 )
     in
     treeMap (\( v, coord ) -> ( v, transform coord )) finalTree
 
